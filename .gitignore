@@ -1,0 +1,8 @@
+
+build/main.d
+build/FatmanRng.map
+build/FatmanRng.lst
+build/main.o
+FatmanRng.elf
+FatmanRng.nacp
+FatmanRng.nro
