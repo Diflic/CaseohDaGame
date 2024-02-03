@@ -16,13 +16,17 @@ int main(int argc, char** argv) //builds the window
     chdir("romfs:/");
     SDL_Texture *chunkyTex = NULL;
     //SDL_Rect {location upper left x, y: size width, height}
-    SDL_Rect dentPos = { 1920 - 480, 1080 - 86, 0, 0};
+    //if you change the first numbers you can change the start pos
+    SDL_Rect dentPos = { 480, 86, 0, 0};
     Mix_Music *music = NULL;
     SDL_Event event;
-    Mix_Chunk *sound[1] = { NULL };
+    // Mix_Chunk *sound[1] = { NULL };
 
     int done = 0;
     int imgW = 256; int imgH = 256;
+
+
+    /*   Setup    */
 
     //define area of diplaying and how it will give the info
     SDL_Window* window = SDL_CreateWindow("CaseohDaGame", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1920, 1080, SDL_WINDOW_SHOWN);
@@ -55,7 +59,18 @@ int main(int argc, char** argv) //builds the window
             return -1;
         }
     }
-    
+    /*music set up*/
+    SDL_InitSubSystem(SDL_INIT_AUDIO);
+    Mix_AllocateChannels(5);
+    Mix_OpenAudio(48000, AUDIO_S16, 2, 4096);
+
+    music = Mix_LoadMUS("data/tubaSong.ogg");
+
+
+    /* Gameplay Actions*/
+
+    if (music) //load ogg music loop
+        Mix_PlayMusic(music, -1);
     while (!done){
         while (SDL_PollEvent(&event)) {
             switch (event.type) {
@@ -71,14 +86,26 @@ int main(int argc, char** argv) //builds the window
                     // seek for joystick #0
                 if (event.jbutton.which == 0) {
                         if (event.jbutton.button == 0) {
-                            //(A) button down (might not be true)
+                            //(A) button down (true)
                             dentPos.x += 100;
-                            
                         }
-                        else if (event.jbutton.button == 10) {
+                        else if (event.jbutton.button == 1) {
+                            // (B) button down
+                            dentPos.x -= 100;
+                        }else if (event.jbutton.button == 2) {
+                            // (x) button down
+                            dentPos.w -= 100;
+                        }else if (event.jbutton.button == 3) {
+                            // (y) button down
+                            dentPos.w += 100;
+                        }else if (event.jbutton.button == 10) {
                             // (+) button down
                             done = 1;
+                        }else if (event.jbutton.button == 11) {
+                            // (-) button down
+                            Mix_FadeOutMusic(100);
                         }
+                    
                 }
                 
             }
