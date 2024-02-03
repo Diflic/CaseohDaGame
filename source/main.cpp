@@ -17,7 +17,9 @@ int main(int argc, char** argv) //builds the window
     SDL_Texture *chunkyTex = NULL;
     //SDL_Rect {location upper left x, y: size width, height}
     SDL_Rect dentPos = { 1920 - 480, 1080 - 86, 0, 0};
+    Mix_Music *music = NULL;
     SDL_Event event;
+    Mix_Chunk *sound[1] = { NULL };
 
     int done = 0;
     int imgW = 256; int imgH = 256;
@@ -70,6 +72,8 @@ int main(int argc, char** argv) //builds the window
                 if (event.jbutton.which == 0) {
                         if (event.jbutton.button == 0) {
                             //(A) button down (might not be true)
+                            dentPos.x += 100;
+                            
                         }
                         else if (event.jbutton.button == 10) {
                             // (+) button down
@@ -80,6 +84,7 @@ int main(int argc, char** argv) //builds the window
             }
             break;
         }
+        SDL_RenderClear(renderer); //this reloads the screen so imgs can move without duplicating
         if(chunkyTex){
         SDL_RenderCopy(renderer, chunkyTex, NULL, &dentPos);
         }
