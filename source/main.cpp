@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <malloc.h>
+#include <time.h>
 #include <SDL.h>
 #include "C:\devkitPro\portlibs\switch\include\SDL2\SDL_image.h"
 #include <time.h>
@@ -10,20 +11,64 @@
 #include <SDL_ttf.h>
 #include <switch.h>
 
+
+/* This lets the randomization happen*/
+
+    #define randnum(min, max) \
+        ((rand() % (int)(((max) + 1) - (min))) + (min))
+    
+    //printf("%d\n", randnum(1, 2));
+    //srand(time(NULL));
+/*Will caseoh move left(1) or right(2)?*/
+int startDrection = randnum(1,2);
+
+
+
+SDL_Texture * render_text(SDL_Renderer *renderer, const char* text, TTF_Font *font, SDL_Color color, SDL_Rect *rect) 
+{
+    SDL_Surface *surface;
+    SDL_Texture *texture;
+
+    surface = TTF_RenderText_Solid(font, text, color);
+    texture = SDL_CreateTextureFromSurface(renderer, surface);
+    rect->w = surface->w;
+    rect->h = surface->h;
+
+    SDL_FreeSurface(surface);
+
+    return texture;
+}
+
 int main(int argc, char** argv) //builds the window
 {
     romfsInit();
     chdir("romfs:/");
-    SDL_Texture *chunkyTex = NULL;
-    //SDL_Rect {location upper left x, y: size width, height}
+    SDL_Texture *chunkyTex = NULL, *text_tex = NULL;
+
+    /*SDL_Rect {location upper left x, y: size width, height}*/
     //if you change the first numbers you can change the start pos
     SDL_Rect dentPos = { 480, 86, 0, 0};
     Mix_Music *music = NULL;
     SDL_Event event;
     // Mix_Chunk *sound[1] = { NULL };
+    SDL_Color colors[] = {
+        { 128, 128, 128, 0 }, // gray
+        { 255, 255, 255, 0 }, // white
+        { 255, 0, 0, 0 },     // red
+        { 0, 255, 0, 0 },     // green
+        { 0, 0, 255, 0 },     // blue
+        { 255, 255, 0, 0 },   // brown
+        { 0, 255, 255, 0 },   // cyan
+        { 255, 0, 255, 0 },   // purple
+    };
 
     int done = 0;
-    int imgW = 256; int imgH = 256;
+    int imgW = 256; int imgH = 256; int chunkySpeed = 10;
+
+   
+
+
+
 
 
     /*   Setup    */
@@ -48,6 +93,18 @@ int main(int argc, char** argv) //builds the window
         return -1;
     }
 
+    /* Text */
+     // load font from romfs
+    TTF_Font* font = TTF_OpenFont("data/LeroyLetteringLightBeta01.ttf", 36);
+
+    // render text as texture
+    SDL_Rect text_rect = { 0, 1920 - 36, 0, 0 };
+    text_tex = render_text(renderer, "whats up gamers", font, colors[1], &text_rect);
+
+
+
+
+    /* Controller */
     // open CONTROLLER_PLAYER_1 and CONTROLLER_PLAYER_2
     // when railed, both joycons are mapped to joystick #0,
     // else joycons are individually mapped to joystick #0, joystick #1, ...
@@ -65,8 +122,9 @@ int main(int argc, char** argv) //builds the window
     Mix_OpenAudio(48000, AUDIO_S16, 2, 4096);
 
     music = Mix_LoadMUS("data/tubaSong.ogg");
+    
 
-
+    int widthing = 1920 - dentPos.x;
     /* Gameplay Actions*/
 
     if (music) //load ogg music loop
@@ -115,9 +173,28 @@ int main(int argc, char** argv) //builds the window
         if(chunkyTex){
         SDL_RenderCopy(renderer, chunkyTex, NULL, &dentPos);
         }
+        
+        /*starts Caseoh moving left*/
+        if(startDrection == 1){
+            // dentPos.x += chunkySpeed;
+            if(dentPos.x >= widthing){
+                chunkySpeed = -10;
+            }
+        }
+        if(startDrection == 2){
+            dentPos.x -= chunkySpeed;
+            if(dentPos.x <= 0 ){
+                chunkySpeed = -10;
+            }
+        }
+        
+        
+        
+        /*render screen*/
         SDL_RenderPresent(renderer);
     }
     
+    /*when game ends*/
     if (chunkyTex)
     {SDL_DestroyTexture(chunkyTex);}
     
