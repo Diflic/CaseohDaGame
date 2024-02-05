@@ -254,26 +254,9 @@ int main(int argc, char** argv) //builds the window
                 chunkySpeed = SPEED;
             }
         }
-        if(startDrection == 3){
-            dentPos.x += chunkySpeed;
-            if(dentPos.x >= widthing){
-                chunkySpeed = -SPEED;
-            }
-            if(dentPos.x <= 0 ){
-                chunkySpeed = SPEED;
-            }
-        }
+        
         /*starts Caseoh moving left*/
         if(startDrection <= 4){
-            dentPos.x -= chunkySpeed;
-            if(dentPos.x <= 0 ){
-                chunkySpeed = -SPEED;
-            }
-            if(dentPos.x >= widthing){
-                chunkySpeed = SPEED;
-            }
-        }
-        if(startDrection == 4){
             dentPos.x -= chunkySpeed;
             if(dentPos.x <= 0 ){
                 chunkySpeed = -SPEED;
@@ -306,6 +289,8 @@ int main(int argc, char** argv) //builds the window
                 if(foodPos.x <= dentPos.x + dentPos.w){
                     go = 0;
                     foodPos.y = 900;
+                    dentPos.h +=100;
+                    dentPos.w +=100;
                     Mix_PlayChannel(-1, sounds[0], 0);
 
                     
