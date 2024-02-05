@@ -24,30 +24,18 @@ int startDrection = randnum(1,2);
 
 
 
-SDL_Texture * render_text(SDL_Renderer *renderer, const char* text, TTF_Font *font, SDL_Color color, SDL_Rect *rect) 
-{
-    SDL_Surface *surface;
-    SDL_Texture *texture;
 
-    surface = TTF_RenderText_Solid(font, text, color);
-    texture = SDL_CreateTextureFromSurface(renderer, surface);
-    rect->w = surface->w;
-    rect->h = surface->h;
-
-    SDL_FreeSurface(surface);
-
-    return texture;
-}
 
 int main(int argc, char** argv) //builds the window
 {
     romfsInit();
     chdir("romfs:/");
-    SDL_Texture *chunkyTex = NULL, *text_tex = NULL;
+    SDL_Texture *chunkyTex = NULL, *foodTex = NULL;
 
     /*SDL_Rect {location upper left x, y: size width, height}*/
     //if you change the first numbers you can change the start pos
     SDL_Rect dentPos = { 480, 86, 0, 0};
+    SDL_Rect foodPos = { 960, 900, 0, 0};
     Mix_Music *music = NULL;
     SDL_Event event;
     // Mix_Chunk *sound[1] = { NULL };
@@ -63,12 +51,12 @@ int main(int argc, char** argv) //builds the window
     };
 
     int done = 0;
-    int imgW = 256; int imgH = 256; int chunkySpeed = 10;
-
+    int imgW = 256; int imgH = 256; int chunkySpeed = 10, SPEED = 10;
+    int delay=100; // milliseconds
    
 
 
-
+    
 
 
     /*   Setup    */
@@ -87,21 +75,25 @@ int main(int argc, char** argv) //builds the window
         SDL_FreeSurface(roadBlock);
     }
 
+    SDL_Surface *foodThick = IMG_Load("data/shrimp.png");
+    if (foodThick) 
+    {
+        //set the w and h of dentPos to the size of roadBlock's w and h
+        foodPos.w = foodThick -> w; 
+        foodPos.h = foodThick -> h;
+        foodTex = SDL_CreateTextureFromSurface(renderer,foodThick);
+        SDL_FreeSurface(foodThick);
+    }
+
+
     // mandatory at least on switch, else gfx is not properly closed
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK) < 0) {
         SDL_Log("SDL_Init: %s\n", SDL_GetError());
         return -1;
     }
-
-    /* Text */
-     // load font from romfs
-    TTF_Font* font = TTF_OpenFont("data/LeroyLetteringLightBeta01.ttf", 36);
-
-    // render text as texture
-    SDL_Rect text_rect = { 0, 1920 - 36, 0, 0 };
-    text_tex = render_text(renderer, "whats up gamers", font, colors[1], &text_rect);
-
-
+   
+    
+    
 
 
     /* Controller */
@@ -124,7 +116,15 @@ int main(int argc, char** argv) //builds the window
     music = Mix_LoadMUS("data/tubaSong.ogg");
     
 
-    int widthing = 1920 - dentPos.x;
+    int widthing = 1920 - dentPos.w; int movement = 50, mspeed = 50;
+    int chikening = 1920 - foodPos.w, nomove = 0;
+    float rotate = 0.0f; 
+
+
+
+
+    SDL_RenderClear(renderer);
+    SDL_RenderPresent(renderer);
     /* Gameplay Actions*/
 
     if (music) //load ogg music loop
@@ -136,6 +136,16 @@ int main(int argc, char** argv) //builds the window
                     SDL_Log("Joystick %d axis %d value: %d\n",
                             event.jaxis.which,
                             event.jaxis.axis, event.jaxis.value);
+                if(event.jaxis.which == 0){
+                    if(event.jaxis.axis == 0){
+                            nomove = 1;
+                        } else if(event.jaxis.axis == 1){
+                            nomove = 2;
+                        }else{
+                    nomove = 0;
+                }
+                }
+                        
                     break;
                 case SDL_JOYBUTTONDOWN:
                     SDL_Log("Joystick %d button %d down\n",
@@ -145,17 +155,17 @@ int main(int argc, char** argv) //builds the window
                 if (event.jbutton.which == 0) {
                         if (event.jbutton.button == 0) {
                             //(A) button down (true)
-                            dentPos.x += 100;
+                         
                         }
                         else if (event.jbutton.button == 1) {
                             // (B) button down
-                            dentPos.x -= 100;
+                            delay = 10;
                         }else if (event.jbutton.button == 2) {
                             // (x) button down
-                            dentPos.w -= 100;
+                            
                         }else if (event.jbutton.button == 3) {
                             // (y) button down
-                            dentPos.w += 100;
+                           
                         }else if (event.jbutton.button == 10) {
                             // (+) button down
                             done = 1;
@@ -171,24 +181,59 @@ int main(int argc, char** argv) //builds the window
         }
         SDL_RenderClear(renderer); //this reloads the screen so imgs can move without duplicating
         if(chunkyTex){
-        SDL_RenderCopy(renderer, chunkyTex, NULL, &dentPos);
+        SDL_RenderCopyEx(renderer, chunkyTex, NULL, &dentPos,rotate,NULL,SDL_FLIP_HORIZONTAL);
         }
-        
+        if(foodTex){
+            SDL_RenderCopy(renderer, foodTex, NULL,&foodPos);
+        }
+
+        if(music){
+            SDL_Delay(delay);
+            rotate += 10.0f;
+        }
+
+
+
         /*starts Caseoh moving left*/
         if(startDrection == 1){
-            // dentPos.x += chunkySpeed;
+            dentPos.x += chunkySpeed;
             if(dentPos.x >= widthing){
-                chunkySpeed = -10;
+                chunkySpeed = -SPEED;
             }
         }
         if(startDrection == 2){
             dentPos.x -= chunkySpeed;
             if(dentPos.x <= 0 ){
-                chunkySpeed = -10;
+                chunkySpeed = -SPEED;
+            }
+            if(dentPos.x >= widthing){
+                chunkySpeed = SPEED;
             }
         }
+        if(nomove == 1){
+            foodPos.x += movement;
+        } else if(nomove == 2){
+            foodPos.x -= movement;
+        } 
         
+        if(foodPos.x >= chikening){
+            movement = -mspeed;
+        }
+        if(foodPos.x <= 0){
+            movement = mspeed;
+        }
         
+
+        if(foodPos.y <= dentPos.y + dentPos.h){ //left bottom corner height
+            if(foodPos.x <= dentPos.x + dentPos.w){ //lefr bottom corner size 2 side
+                if(foodPos.x >= dentPos.x){
+                    
+                }
+            }
+        }
+   
+           
+
         
         /*render screen*/
         SDL_RenderPresent(renderer);
