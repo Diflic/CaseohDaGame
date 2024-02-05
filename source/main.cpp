@@ -10,27 +10,45 @@
 #include <SDL_mixer.h>
 #include <SDL_ttf.h>
 #include <switch.h>
+#include <string>
 
 
 /* This lets the randomization happen*/
 
     #define randnum(min, max) \
-        ((rand() % (int)(((max) + 1) - (min))) + (min))
+    ((rand() % (int)(((max) + 1) - (min))) + (min))
     
     //printf("%d\n", randnum(1, 2));
     //srand(time(NULL));
 /*Will caseoh move left(1) or right(2)?*/
-int startDrection = randnum(1,2);
 
 
+int rand_range(int min, int max){
+   return min + rand() / (RAND_MAX / (max - min + 1) + 1);
+}
+//texture render sets text into a renderer
+SDL_Texture * render_text(SDL_Renderer *renderer, const char* text, TTF_Font *font, SDL_Color color, SDL_Rect *rect) 
+{
+    SDL_Surface *surface;
+    SDL_Texture *texture;
 
+    surface = TTF_RenderText_Solid(font, text, color);
+    texture = SDL_CreateTextureFromSurface(renderer, surface);
+    rect->w = surface->w;
+    rect->h = surface->h;
+
+    SDL_FreeSurface(surface);
+
+    return texture;
+}
 
 
 int main(int argc, char** argv) //builds the window
 {
+  
     romfsInit();
     chdir("romfs:/");
-    SDL_Texture *chunkyTex = NULL, *foodTex = NULL;
+    SDL_Texture *chunkyTex = NULL, *foodTex = NULL, *numTex = NULL;
 
     /*SDL_Rect {location upper left x, y: size width, height}*/
     //if you change the first numbers you can change the start pos
@@ -38,7 +56,7 @@ int main(int argc, char** argv) //builds the window
     SDL_Rect foodPos = { 960, 900, 0, 0};
     Mix_Music *music = NULL;
     SDL_Event event;
-    // Mix_Chunk *sound[1] = { NULL };
+    TTF_Init();
     SDL_Color colors[] = {
         { 128, 128, 128, 0 }, // gray
         { 255, 255, 255, 0 }, // white
@@ -51,12 +69,12 @@ int main(int argc, char** argv) //builds the window
     };
 
     int done = 0;
-    int imgW = 256; int imgH = 256; int chunkySpeed = 10, SPEED = 10;
+    int imgW = 256; int imgH = 256; int chunkySpeed = 10, SPEED = 10, setFalse = 0;
     int delay=100; // milliseconds
-   
-
-
+    int startDrection = 0;
     
+   
+     
 
 
     /*   Setup    */
@@ -85,7 +103,10 @@ int main(int argc, char** argv) //builds the window
         SDL_FreeSurface(foodThick);
     }
 
-
+    
+    SDL_Rect numrect = { 0, 1080 - 36, 0, 0 };
+    
+    
     // mandatory at least on switch, else gfx is not properly closed
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK) < 0) {
         SDL_Log("SDL_Init: %s\n", SDL_GetError());
@@ -114,9 +135,10 @@ int main(int argc, char** argv) //builds the window
     Mix_OpenAudio(48000, AUDIO_S16, 2, 4096);
 
     music = Mix_LoadMUS("data/tubaSong.ogg");
+    Mix_Chunk *sounds[1] = {NULL};
     
 
-    int widthing = 1920 - dentPos.w; int movement = 50, mspeed = 50;
+    int widthing = 1920 - dentPos.w; int movement = 20, mspeed = 20, uppies = 20, go = 0;
     int chikening = 1920 - foodPos.w, nomove = 0;
     float rotate = 0.0f; 
 
@@ -126,7 +148,7 @@ int main(int argc, char** argv) //builds the window
     SDL_RenderClear(renderer);
     SDL_RenderPresent(renderer);
     /* Gameplay Actions*/
-
+    sounds[0] = Mix_LoadWAV("data/Alfredo.wav");
     if (music) //load ogg music loop
         Mix_PlayMusic(music, -1);
     while (!done){
@@ -155,11 +177,18 @@ int main(int argc, char** argv) //builds the window
                 if (event.jbutton.which == 0) {
                         if (event.jbutton.button == 0) {
                             //(A) button down (true)
-                         
+                            startDrection = rand_range(1,6);
+            std::string str = std::to_string(startDrection);
+
+            const char * c = str.c_str();
+            TTF_Font* font = TTF_OpenFont("data/ComicSansMS3.ttf", 36);
+            numTex = render_text(renderer, c, font, { 255, 255, 255, 0 }, &numrect);
+            TTF_CloseFont(font);
                         }
                         else if (event.jbutton.button == 1) {
                             // (B) button down
                             delay = 10;
+                            go = 1;
                         }else if (event.jbutton.button == 2) {
                             // (x) button down
                             
@@ -179,8 +208,29 @@ int main(int argc, char** argv) //builds the window
             }
             break;
         }
+
+        if(setFalse == 0){
+            startDrection = rand_range(1,6);
+            std::string str = std::to_string(startDrection);
+
+            const char * c = str.c_str();
+            TTF_Font* font = TTF_OpenFont("data/ComicSansMS3.ttf", 36);
+            numTex = render_text(renderer, c, font, { 255, 255, 255, 0 }, &numrect);
+            TTF_CloseFont(font);
+            setFalse += 1;
+        }
         SDL_RenderClear(renderer); //this reloads the screen so imgs can move without duplicating
+
+
+
+        if (numTex){
+            
+            SDL_RenderCopy(renderer, numTex, NULL, &numrect);
+            
+        }
+
         if(chunkyTex){
+        
         SDL_RenderCopyEx(renderer, chunkyTex, NULL, &dentPos,rotate,NULL,SDL_FLIP_HORIZONTAL);
         }
         if(foodTex){
@@ -188,20 +238,33 @@ int main(int argc, char** argv) //builds the window
         }
 
         if(music){
-            SDL_Delay(delay);
+            //SDL_Delay(delay);
             rotate += 10.0f;
         }
 
 
 
-        /*starts Caseoh moving left*/
-        if(startDrection == 1){
+        /*starts Caseoh moving right*/
+        if(startDrection >= 3){
             dentPos.x += chunkySpeed;
             if(dentPos.x >= widthing){
                 chunkySpeed = -SPEED;
             }
+            if(dentPos.x <= 0 ){
+                chunkySpeed = SPEED;
+            }
         }
-        if(startDrection == 2){
+        if(startDrection == 3){
+            dentPos.x += chunkySpeed;
+            if(dentPos.x >= widthing){
+                chunkySpeed = -SPEED;
+            }
+            if(dentPos.x <= 0 ){
+                chunkySpeed = SPEED;
+            }
+        }
+        /*starts Caseoh moving left*/
+        if(startDrection <= 4){
             dentPos.x -= chunkySpeed;
             if(dentPos.x <= 0 ){
                 chunkySpeed = -SPEED;
@@ -210,10 +273,20 @@ int main(int argc, char** argv) //builds the window
                 chunkySpeed = SPEED;
             }
         }
+        if(startDrection == 4){
+            dentPos.x -= chunkySpeed;
+            if(dentPos.x <= 0 ){
+                chunkySpeed = -SPEED;
+            }
+            if(dentPos.x >= widthing){
+                chunkySpeed = SPEED;
+            }
+        }
+        /*character movement*/
         if(nomove == 1){
-            foodPos.x += movement;
+            movement += mspeed;
         } else if(nomove == 2){
-            foodPos.x -= movement;
+            movement += -mspeed;
         } 
         
         if(foodPos.x >= chikening){
@@ -222,14 +295,26 @@ int main(int argc, char** argv) //builds the window
         if(foodPos.x <= 0){
             movement = mspeed;
         }
-        
 
-        if(foodPos.y <= dentPos.y + dentPos.h){ //left bottom corner height
-            if(foodPos.x <= dentPos.x + dentPos.w){ //lefr bottom corner size 2 side
-                if(foodPos.x >= dentPos.x){
+        if(go == 1){
+            foodPos.y -= uppies;
+        }
+        
+        /*Touchies*/
+        if(foodPos.y <= dentPos.y + dentPos.h){ //left bottom corner height need to add because otherwise its too high
+            if(foodPos.x >= dentPos.x){ //lefr bottom corner size 2 side
+                if(foodPos.x <= dentPos.x + dentPos.w){
+                    go = 0;
+                    foodPos.y = 900;
+                    Mix_PlayChannel(-1, sounds[0], 0);
+
                     
                 }
             }
+        }
+        if(foodPos.y <= 0){
+            go = 0;
+            foodPos.y = 900;
         }
    
            
