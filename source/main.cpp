@@ -48,12 +48,15 @@ int main(int argc, char** argv) //builds the window
   
     romfsInit();
     chdir("romfs:/");
-    SDL_Texture *chunkyTex = NULL, *foodTex = NULL, *numTex = NULL;
+    SDL_Texture *chunkyTex = NULL, *foodTex = NULL, *numTex = NULL, *wordTex = NULL, *tellTex = NULL;
 
     /*SDL_Rect {location upper left x, y: size width, height}*/
     //if you change the first numbers you can change the start pos
     SDL_Rect dentPos = { 480, 86, 0, 0};
     SDL_Rect foodPos = { 960, 900, 0, 0};
+    SDL_Rect numrect = { 0, 1080 - 36, 0, 0 };
+    SDL_Rect numwords = { 0, 1000, 0, 0 };
+    SDL_Rect tellPos = { 0, 540, 0, 0 };
     Mix_Music *music = NULL;
     SDL_Event event;
     TTF_Init();
@@ -72,6 +75,7 @@ int main(int argc, char** argv) //builds the window
     int imgW = 256; int imgH = 256; int chunkySpeed = 10, SPEED = 10, setFalse = 0;
     int delay=100; // milliseconds
     int startDrection = 0;
+    int weight = 109;
     
    
      
@@ -102,9 +106,14 @@ int main(int argc, char** argv) //builds the window
         foodTex = SDL_CreateTextureFromSurface(renderer,foodThick);
         SDL_FreeSurface(foodThick);
     }
-
+    // void imgMake(SDL_Renderer *render, SDL_Surface *img, SDL_Rect pos, SDL_Texture *text){
+    //     pos.w =  img -> w; 
+    //     pos.h =  img -> h;
+    //     text = SDL_CreateTextureFromSurface(render,img);
+    //     SDL_FreeSurface(img);
+    // }
     
-    SDL_Rect numrect = { 0, 1080 - 36, 0, 0 };
+    
     
     
     // mandatory at least on switch, else gfx is not properly closed
@@ -129,6 +138,8 @@ int main(int argc, char** argv) //builds the window
             return -1;
         }
     }
+
+    /* Vibration*/
     /*music set up*/
     SDL_InitSubSystem(SDL_INIT_AUDIO);
     Mix_AllocateChannels(5);
@@ -149,6 +160,8 @@ int main(int argc, char** argv) //builds the window
     SDL_RenderPresent(renderer);
     /* Gameplay Actions*/
     sounds[0] = Mix_LoadWAV("data/Alfredo.wav");
+    sounds[1] = Mix_LoadWAV("data/ahhahh.wav");
+    sounds[2] = Mix_LoadWAV("data/shrimp.wav");
     if (music) //load ogg music loop
         Mix_PlayMusic(music, -1);
     while (!done){
@@ -159,13 +172,7 @@ int main(int argc, char** argv) //builds the window
                             event.jaxis.which,
                             event.jaxis.axis, event.jaxis.value);
                 if(event.jaxis.which == 0){
-                    if(event.jaxis.axis == 0){
-                            nomove = 1;
-                        } else if(event.jaxis.axis == 1){
-                            nomove = 2;
-                        }else{
-                    nomove = 0;
-                }
+                    
                 }
                         
                     break;
@@ -177,17 +184,11 @@ int main(int argc, char** argv) //builds the window
                 if (event.jbutton.which == 0) {
                         if (event.jbutton.button == 0) {
                             //(A) button down (true)
-                            startDrection = rand_range(1,6);
-            std::string str = std::to_string(startDrection);
-
-            const char * c = str.c_str();
-            TTF_Font* font = TTF_OpenFont("data/ComicSansMS3.ttf", 36);
-            numTex = render_text(renderer, c, font, { 255, 255, 255, 0 }, &numrect);
-            TTF_CloseFont(font);
                         }
                         else if (event.jbutton.button == 1) {
                             // (B) button down
-                            delay = 10;
+                            //delay = 10;
+                            Mix_PlayChannel(-1, sounds[2], 0);
                             go = 1;
                         }else if (event.jbutton.button == 2) {
                             // (x) button down
@@ -201,6 +202,11 @@ int main(int argc, char** argv) //builds the window
                         }else if (event.jbutton.button == 11) {
                             // (-) button down
                             Mix_FadeOutMusic(100);
+                        } else if(event.jbutton.button == 18){
+                            nomove = 1;
+                        } else if(event.jaxis.axis == 16){
+                            nomove = 2;
+                        
                         }
                     
                 }
@@ -208,14 +214,17 @@ int main(int argc, char** argv) //builds the window
             }
             break;
         }
-
-        if(setFalse == 0){
+        if(startDrection == 0){
             startDrection = rand_range(1,6);
-            std::string str = std::to_string(startDrection);
-
+        }
+        
+        if(setFalse == 0){
+            
+            std::string str = std::to_string(weight);
             const char * c = str.c_str();
             TTF_Font* font = TTF_OpenFont("data/ComicSansMS3.ttf", 36);
             numTex = render_text(renderer, c, font, { 255, 255, 255, 0 }, &numrect);
+            wordTex = render_text(renderer, "weight in kg:", font, { 255, 255, 255, 0 }, &numwords);
             TTF_CloseFont(font);
             setFalse += 1;
         }
@@ -226,7 +235,11 @@ int main(int argc, char** argv) //builds the window
         if (numTex){
             
             SDL_RenderCopy(renderer, numTex, NULL, &numrect);
-            
+            SDL_RenderCopy(renderer, wordTex, NULL, &numwords);
+            TTF_Font* font = TTF_OpenFont("data/ComicSansMS3.ttf", 36);
+            tellTex = render_text(renderer, "OH NO! he's underweight. Press B to feed", font, { 255, 255, 255, 0 }, &tellPos);
+            SDL_RenderCopy(renderer, tellTex, NULL, &tellPos);
+            TTF_CloseFont(font);
         }
 
         if(chunkyTex){
@@ -238,8 +251,8 @@ int main(int argc, char** argv) //builds the window
         }
 
         if(music){
-            //SDL_Delay(delay);
-            rotate += 10.0f;
+            SDL_Delay(delay);
+            rotate += 0.01f;
         }
 
 
@@ -267,10 +280,12 @@ int main(int argc, char** argv) //builds the window
         }
         /*character movement*/
         if(nomove == 1){
-            movement += mspeed;
+            foodPos.x += mspeed;
         } else if(nomove == 2){
-            movement += -mspeed;
-        } 
+            foodPos.x += -mspeed;
+        }else{
+            foodPos.x += 0;
+        }
         
         if(foodPos.x >= chikening){
             movement = -mspeed;
@@ -278,9 +293,11 @@ int main(int argc, char** argv) //builds the window
         if(foodPos.x <= 0){
             movement = mspeed;
         }
-
+        /*makes the shrimp alphredo move*/
         if(go == 1){
+            
             foodPos.y -= uppies;
+            mspeed = 0;
         }
         
         /*Touchies*/
@@ -288,11 +305,19 @@ int main(int argc, char** argv) //builds the window
             if(foodPos.x >= dentPos.x){ //lefr bottom corner size 2 side
                 if(foodPos.x <= dentPos.x + dentPos.w){
                     go = 0;
+                    mspeed = 30;
+                    uppies += 10;
+                    foodPos.x = 100;
                     foodPos.y = 900;
                     dentPos.h +=100;
                     dentPos.w +=100;
-                    Mix_PlayChannel(-1, sounds[0], 0);
-
+                    Mix_PlayChannel(-1, sounds[1], 0);
+                    weight += 200;
+                    std::string str = std::to_string(weight);
+                    const char * c = str.c_str();
+                    TTF_Font* font = TTF_OpenFont("data/ComicSansMS3.ttf", 36);
+                    numTex = render_text(renderer, c, font, { 255, 255, 255, 0 }, &numrect);
+                    TTF_CloseFont(font);
                     
                 }
             }
@@ -300,8 +325,10 @@ int main(int argc, char** argv) //builds the window
         if(foodPos.y <= 0){
             go = 0;
             foodPos.y = 900;
+            mspeed = 20;
+            foodPos.x = 100;
         }
-   
+        
            
 
         
